@@ -1,0 +1,1013 @@
+---
+title: "Final_Report"
+author: "田若瑶-201930580499<br/>宋雨辰-201830360498<br />王学文-201830120252<br />毛丰健-201930362330<br />冯义浩-201930650062<br />Group 8 - Final Project - Data Analysis and Modeling"
+output: 
+    html_document:
+      theme: spacelab
+      highlight: pygments
+      toc: true
+      toc_float:
+        collapsed: false
+        smooth_scroll: true
+      toc_depth: 6
+      fig_width: 7
+      fig_height: 5
+      fig_caption: true
+      df_print: paged
+    pdf_document:
+number_sections: yes
+link-citations: true
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+***
+
+## **Load packages**
+
+```{r load-packages, message = FALSE}
+options (warn = -1)
+library(ggplot2)
+library(dplyr)
+library(DT)
+library(patchwork)
+library(pander)
+library(colorspace)
+library(scales)
+library(corrplot)
+library(fitdistrplus)
+library(RColorBrewer)
+library(desc)
+library(DAAG)
+library(sampling)
+library(pROC)
+library(mlr3verse)
+library(mlr3viz)
+library(lavaan)
+library(semPlot)
+library(kknn)
+library(ranger)
+library(mlr3learners)
+library(mlr3)
+library(e1071)
+```
+
+***
+
+## **Load data**
+
+```{r load-data}
+load("brfss2013.RData")
+dim(brfss2013)
+```
+
+***
+
+## **Background**
+
+The data set we choose is the Behavioral Risk Factor Surveillance System(BRFSS). As modern society moves forward drastically, our health has also ushered in more new challenges. We have noticed that due to those significant increase in the pressure of study, work, and life in modern society, the symptoms of hypertension have also spread to more than the middle-aged people in a more obvious trend. After browsing and scanning a number of variables in the table, and fully considering the research interests of all members of the team, we selected whether have hypertension or not as the response variable, and tried to find factors that may have an effect on that in the data set. 
+
+**The question is: Find the influencing factors of hypertension and Develop appropriate mathematical models to predict whether an individual has high blood pressure or not.**
+
+The purpose of our research is to scan variables and establish reasonable mathematical models. We can finally give scientific guidance on certain behaviors of some people in real life and persuade them to make timely adjustments to reduce the risk of hypertension.
+
+***
+
+## **Methodology**
+
+Obviously, although we have confirmed the hypertension as core variable, we cannot take it for granted that all variables in the data set may have a potential impact on it. Based on life experience and research interests, we first ignored some variables that we thought were not closely related to hypertension. Therefore, we browsed and searched information on some official websites and relevant medical platforms, and used this as a basis to make a centralized judgment on the data. For a series of variables initially obtained, we listed them as: `Smoke100`, `Exerany2`, `X_bmi5`, `Alcday5`, `cvdinfr4`, `X_age_g`. Undoubtedly, these variables can easily conform to our expectations intuitively. That smoking behavior is out of restraint, fitness status is too bad, personal BMI index is biased to two extremes, drinking frequency is too significant, one is suffering from heart disease and is surely affected by age group complex effects, would definitely increase our stereotypes of evaluation of hypertension. At the same time, these factors are also aspects that patients often consider about and this fact is confirmed in the hospital's registration records. We conducted a complete EDA to determine whether they have a significant effect on hypertension or not. The knowledge and tools that we use EDA mainly rely on in-class knowledge. After that, we focused on building a model that integrates more than one variable, because the persuasiveness and scientificity of studying an impact factor alone on hypertension does not have a practical effect. We ensure that the variables are analyzed comprehensively, and finally a mathematical model with good prediction is obtained.
+
+***
+
+##  **EDA**
+
+***
+
+
+### **Smoke100**
+
+#### Variable Definition
+
+     Have you smoked at least 100 cigarettes in your entire life?
+
+| Value | Value Label                                | Frequency | Percent |
+|-------|--------------------------------------------|-----------|---------|
+|     Yes | smoked at least 100 cigarettes in the entire life    | 215,201      | 0.4376005    | 
+|     No |  not smoked at least 100 cigarettes in the entire life     | 261,654      | 0.5320604    |
+
+#### Data Visualization
+
+Eliminate the individuals whose value of smoke100 or X_rfhype5 is NA in the data set.
+
+```{r}
+valid_smoke100 <- dplyr::select(brfss2013, smoke100, X_rfhype5) %>% na.omit()
+```
+
+Plot **stacked-bar chart** to analyze the difference of smoking frequency between hypertensive and non-hypertensive populations.
+
+```{r}
+smoke100_plot <- ggplot(valid_smoke100) + aes(x=smoke100, fill=X_rfhype5) + geom_bar(position = "fill")
+smoke100_plot <- smoke100_plot + xlab("Have smoked at least 100 times") + 
+  ylab("Proportion") + scale_fill_discrete(name="High blood pressure")
+smoke100_plot
+```
+
+The graph clearly shows that the proportion of hypertension is `larger` in the group of people who smoke more than 100 times in their lives. Therefore, it is necessary to test the correlation between these two variables.
+
+#### EDA Method Selection
+
+> Our problem is to test the correlation between smoking and hypertension. Next, summarize the properties of these variables and choose the appropriate EDA method.
+
+  - Each individual is classified according to both two categorical variables.
+  - Randomness: The individuals are selected randomly.
+  - Large size: The four expected counts in the 2*2 table is 5 or greater becasuse we choose large sample size.
+  - Independent: Each case is independent with each other.
+
+So we can use the **Chi-square test** to test on independence of smoking and hypertension. 
+
+#### Data Sampling
+
+In order to study the correlation between these two categorical variables of all individuals in brfss2013, 1/20 of the population was selected as the sample for chi-square test. Then draw two-way table to compare distributions of a single categorical variable smoke100.
+
+```{r}
+set.seed(228)
+smoke100_sub = sample(nrow(valid_smoke100),0.05*nrow(valid_smoke100))
+smoke100_sample = valid_smoke100[smoke100_sub,]
+
+table_1 = table(smoke100_sample$smoke100,smoke100_sample$X_rfhype5)
+table_1
+```
+
+#### Make Hypothesis
+
+**H0: **There is no difference in the distribution of hypertensive patients in the smoke more than 100 times and smoke less than 100 times populations.
+
+**Ha: **There is a difference in the distribution of hypertensive patients in the smoke more than 100 times and smoke less than 100 times populations.
+
+#### Chi-square Test
+
+```{r}
+chisq.test(table_1)
+```
+
+p-value is less than 2.2e-16.
+
+#### Conclusion
+
+The P-value is smaller than 2.2e-16 in our test and it is less than $α$ which is 0.05. The small P-value gives us convincing 
+evidence to `reject H0` and conclude that there is a difference in the distribution of hypertensive patients in the smoke more than 100 times and smoke less than 100 times populations.
+
+Chi-square test can only help us conclude that smoke100 has a significant effect on hypertension, but the contribution of this variable and the comprehensive effect between this variable and other variables need to be analyzed by using the model described below for regression analysis.
+
+***
+
+### **Exerany2**
+
+#### Variable Definition
+
+      The exercise status of the respondents, about whether the respondents have participated in any physical activities or exercises within a month
+
+| Value | Value Label                                | Frequency | Percent |
+|-------|--------------------------------------------|-----------|---------|
+|     Yes | have participated in any physical activities or exercises within a month    | 332,464       | 0.6760490     | 
+|     No |  not have participated in any physical activities or exercises within a month     | 125,282       | 0.2547547     |
+
+#### Data Analysis
+
+Eliminate the individuals of exerany2 and X_rfhype5 whose value is NA in the data set.
+
+```{r}
+valid_exerany2 <- dplyr::select(brfss2013, exerany2, X_rfhype5) %>% na.omit()
+```
+
+Draw **bar plot** to analyze the difference of smoking frequency between hypertensive and non-hypertensive patients.
+
+```{r}
+exePlot <- ggplot(valid_exerany2) + aes(x=exerany2,fill=valid_exerany2$X_rfhype5) + 
+  geom_bar(position = "dodge") 
+exePlot <- exePlot + xlab("Exercised At Least 30 Days") + 
+  ylab("Count") + scale_fill_discrete(name="High blood pressure")
+exePlot
+```
+
+The graph clearly shows that the proportion of high blood pressure is larger in the group of people who does not have exercised in 30 days. Therefore, it is necessary to test the correlation between these two variables.
+
+#### EDA Method Selection
+
+> Our problem is to test the correlation between exercise and high blood pressure. Next, summarize the properties of these variables and choose the appropriate EDA method.
+
+  - Each individual is classified according to both of two categorical variables.
+  - Randomness: The individuals are selected randomly.
+  - Large size: The four expected counts in the 2*2 table is 5 or greater because we choose large sample size.
+  - Independent: Each case is independent with each other.
+
+So we can use the **Chi-square test** to test for independence of exercising and hypertension. 
+
+#### Data Sampling
+
+In order to study the correlation between these two categorical variables of all individuals in brfss2013, 1/20 of the population was selected as the sample for chi-square test. Then draw two-way table to compare distributions of a single categorical variable exerany2.
+
+```{r}
+set.seed(230)
+exerany2_sub = sample(nrow(valid_exerany2),0.05*nrow(valid_exerany2))
+exerany2_sample = valid_exerany2[exerany2_sub,]
+
+table_2 = table(exerany2_sample$exerany2,exerany2_sample$X_rfhype5)
+table_2
+```
+
+#### Make Hypothesis
+
+**H0: **There is no difference in the distribution of hypertensive patients in the group of people who does not have exercised in 30 days and have exercised in 30 days. 
+
+**Ha: **There is a difference in the distribution of hypertensive patients in the group of people who does not have exercised in 30 days and have exercised in 30 days. 
+
+#### Chi-square Test
+
+X-squared equals to 328.45, p-value less than 2.2e-16.
+
+```{r}
+chisq.test(table_2)
+```
+
+#### Conclusion
+
+The P-value is smaller than 2.2e-16 in our test and it is less than $α$ which is 0.05. The small P-value gives us convincing 
+evidence to `reject H0` and conclude that there is a difference in the distribution of hypertensive patients in the group of people who does not have exercised in 30 days and have exercised in 30 days. 
+
+Chi-square test can only help us conclude that exerany2 has a significant effect on hypertension, but the contribution of this variable and the comprehensive effect between this variable and other variables need to be analyzed by using the model described below for regression analysis.
+
+***
+
+### **X_bmi5**
+
+#### Variable Definition
+
+      Body Mass Index (BMI)
+
+| Value | Value Label                                | Frequency | Percent |
+|-------|--------------------------------------------|-----------|---------|
+|     1-9999 | value of bmi   | 465,048                | 0.945652         | 
+
+#### Data Visualization
+
+Eliminate the individuals of X_bmi5 and X_rfhype5 whose value is NA in the data set.
+
+```{r}
+options (warn = -1)
+valid_X_bmi5 <- dplyr::select(brfss2013, X_bmi5, X_rfhype5) %>% na.omit()
+valid_X_bmi5$X_bmi5[valid_X_bmi5$X_bmi5 > 1]=valid_X_bmi5$X_bmi5/100
+```
+
+Then **summarize** the valid data and draw the **Density plot** and **boxplot** to describe the spread.
+
+```{r}
+summary(valid_X_bmi5)
+ggplot(valid_X_bmi5, aes(x = X_bmi5, color = X_rfhype5)) +
+    geom_density(adjust = 2) +
+    labs(title = "Distribution of BMI by Blood Pressure Level", 
+         y = "Density", x = "BMI", 
+         col = "Blood Pressure Level") +
+    theme(plot.title = element_text(hjust = 0.5))
+boxplot(valid_X_bmi5$X_bmi5)
+```
+
+It can be seen from the density map and summary:
+
+  - shape: In both populations, the distribution of bmi is unimodal and right-skewed.
+  - spread: For the whole population, the distribution of bmi is from 23.67 to 30.81.
+  - outliers: The minimum bmi is 0.01, and the maximum bmi is 97.69, which is unbelievable. According to the boxplot, there must be some outliers at the lower tail and upper tail.
+
+To sum up, the outliers must be removed by using **1.5IQR Principle** before the test is carried out.
+
+#### Use 1.5IQR to remove outliers
+
+After removing the outliers, the distribution ss approximately unimodal symmetric, which is much closer to the reality.
+
+```{r}
+valid_X_bmi5 <- valid_X_bmi5 %>%
+    filter((valid_X_bmi5$X_bmi5>(quantile(valid_X_bmi5$X_bmi5,0.25))-1.5*IQR(valid_X_bmi5$X_bmi5))
+           & (valid_X_bmi5$X_bmi5<(quantile(valid_X_bmi5$X_bmi5,0.75))+1.5*IQR(valid_X_bmi5$X_bmi5)))
+```
+
+```{r}
+summary(valid_X_bmi5)
+ggplot(valid_X_bmi5, aes(x = X_bmi5, color = X_rfhype5)) +
+    geom_density(adjust = 2) +
+    labs(title = "Distribution of BMI by Blood Pressure Level", 
+         y = "Density", x = "BMI", col = "Blood Pressure Level") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+Draw **boxplot** to analyze the difference of bmi between hypertensive and non-hypertensive patients.
+
+```{r}
+boxplot(valid_X_bmi5$X_bmi5~valid_X_bmi5$X_rfhype5)
+```
+
+We can see from the boxplot, mean value of bmi in high blood pressure group is larger than that of people who does not have high blood pressure. Therefore, it is necessary to test the correlation between bmi and high blood pressure.
+
+#### EDA Method Selection
+
+> Our parameters of interest are µ1 = the true mean bmi in high blood pressure group and µ2 = the true mean bmi of in none-high blood pressure group. We want to estimate the difference µ1 – µ2 at a 95% confidence level.Next, summarize the properties of these variables and choose the appropriate EDA method.
+
+  - The relationship we study is between one numerical variable (bmi) and one categorical (high blood pressure).
+  - Randomness: The individuals are selected randomly.
+  - Normal: The QQ plot give us reason to believe that the population distributions of bmi is not Normal. However, we can choose the sample sizes which are at least 30, by using the Central Limit Theorem, we are still safe using t procedures.
+  - Independent: Each case is independent with each other.
+  - We don't know the standard deviation of bmi in population.
+
+```{r}
+qqnorm(valid_X_bmi5$X_bmi5)
+qqline(valid_X_bmi5$X_bmi5)
+```
+
+Choose the sample size which is larger than 30, we can still use **large sample t test** to compare two means.
+
+#### Data Sampling 
+
+In order to study the difference of true means in two groups, 1/20 of the population was selected as the sample for large sample t-test. Although we don't know the sd of bmi in population, the sample size is large enough, the results is the same as z-test.
+
+Firstly, we sample 1/20 of the population to simplify the classify process.
+
+```{r}
+set.seed(232)
+bmi_sub = sample(nrow(valid_X_bmi5),0.05*nrow(valid_X_bmi5))
+bmi_sample = valid_X_bmi5[bmi_sub,]
+```
+
+Secondly we divided the sample into two groups according to the state of blood pressure. 
+
+```{r}
+bmi_sample_y = subset(bmi_sample, X_rfhype5 == 'Yes')
+bmi_sample_n = subset(bmi_sample, X_rfhype5 == 'No')
+```
+
+Then we sample from these two groups, the sample size are both larger than 30.
+
+```{r}
+set.seed(234)
+bmi_y_sub = sample(nrow(bmi_sample_y),0.05*nrow(bmi_sample_y))
+bmi_y_small = bmi_sample_y[bmi_y_sub,]
+
+set.seed(236)
+bmi_n_sub = sample(nrow(bmi_sample_n),0.05*nrow(bmi_sample_n))
+bmi_n_small = bmi_sample_n[bmi_n_sub,]
+```
+
+####  Large Sample T-test
+
+In this test, we calculate the 95% confidence interval of the difference between mean value of bmi of hypertensive patients and none-hypertensive patients. The t-test in a single tail test.
+
+```{r}
+t.test(bmi_y_small$X_bmi5,bmi_n_small$X_bmi5,alternative = "greater",var.equal = FALSE)
+```
+
+#### Conclusion
+
+The mean of bmi in hypertension group is 27.70 and is 26.75 in none-hypertension group. The P-value is 0.0007233 in our test and it is less than $α$ which is 0.05. What's more, 95% confidence interval is always larger than 0, giving us convincing evidence to believe that `the true mean of bmi of hypertensive patients` in population is `larger` than than that of people who does not have hypertension. 
+
+***
+
+### **Alcday5**
+
+#### Variable Definition
+
+    The frequency of drinking, about how often the individual drink alcohol at least once during the past 30 days.
+
+| Value | Value Label                                | Frequency | Percent |
+|-------|--------------------------------------------|-----------|---------|
+|     101-107 | Days per week                      | 63,144      | 0.1319   | 
+|     201-230 | Days in past 30 days               | 172,368     | 0.3601   |
+|      0      | No drinks                          | 236,617     | 0.4943   |
+
+    It should be noted that this variable is not a categorical variable in the strict sense. The higher the value of the unit digit, the higher the drinking frequency an individual has.
+
+#### Data Visualization
+
+Eliminate the individuals of alcday5 and X_rfhype5 whose value is NA in the data set. 
+
+```{r}
+valid_alcday5 <- dplyr::select(brfss2013, alcday5, X_rfhype5) %>% na.omit()
+```
+
+Since the value of this variable has two forms (1-0X and 2-XX) and 0, we can divide the sample into three groups according to the value of alcday5. We can draw the **histogram** to see the distribution of the alcday5.
+
+```{r}
+valid_alcday5_0<-subset(valid_alcday5, alcday5 == 0)
+valid_alcday5_1<-subset(valid_alcday5, alcday5 > 100 & alcday5 < 200)
+valid_alcday5_2<-subset(valid_alcday5, alcday5 > 200 & alcday5 < 300)
+
+dim(valid_alcday5_0)[1]
+dim(valid_alcday5_0)[1]/dim(valid_alcday5)[1]
+
+valid_alcday5_1_plot<-ggplot(data=valid_alcday5_1,aes(x=alcday5)) + 
+  geom_histogram(binwidth=1,fill="#66FFCC",color="#FFFFFF", alpha=1) + 
+  theme_bw()+xlim(100, 108)+labs(x="alcday5",y="count",title="Drinking Frequency Within a Week")
+
+valid_alcday5_2_plot<-ggplot(data=valid_alcday5_2,aes(x=alcday5)) + 
+  geom_histogram(binwidth=1,fill="#66FFCC",color="#FFFFFF", alpha=1) + 
+  theme_bw()+xlim(199, 231)+labs(x="alcday5",y="count",title="Drinking Frequency Within a Month")
+
+valid_alcday5_1_plot+valid_alcday5_2_plot
+```
+
+The number of people who don't drink is 235944, which is 0.501 of the whole population. While in either case, the data is double-modal and  right-skewed. There are a lot of people who drink less frequently and a lot of people who drink more frequently.
+
+#### Normalization
+
+First of all, to unify the two statements, we normalized all the values of the variable. The ratio represents the frequency of drinking. The closer the number gets to 1, the more drinking frequency it is.
+
+```{r}
+week_idx = which(valid_alcday5$alcday5>100 & valid_alcday5$alcday5<200)
+valid_alcday5$alcday5[week_idx] = (valid_alcday5$alcday5[week_idx]-100)/7
+month_idx = which(valid_alcday5$alcday5>200)
+valid_alcday5$alcday5[month_idx] = (valid_alcday5$alcday5[month_idx]-200)/30
+```
+
+Then draw the **histogram** again to observe the distribution in both groups.
+
+```{r}
+alc_y = subset(valid_alcday5, X_rfhype5 == 'Yes')
+alc_n = subset(valid_alcday5, X_rfhype5 == 'No')
+
+alc_y_plot<-ggplot(data=alc_y,aes(x=alcday5)) + 
+  geom_histogram(binwidth=0.1,fill="#66FFCC",color="#FFFFFF", alpha=1) + 
+  theme_bw()+xlim(0,1)+ylim(0,0.5e+05)+labs(x="alcday5",y="count",title="High blood pressure")
+alc_n_plot<-ggplot(data=alc_n,aes(x=alcday5)) + 
+  geom_histogram(binwidth=0.1,fill="#66FFCC",color="#FFFFFF", alpha=1) + 
+  theme_bw()+xlim(0,1)+ylim(0,0.5e+05)+labs(x="alcday5",y="count",title="None-high blood pressure")
+alc_y_plot+alc_n_plot
+```
+
+It can be seen from the histogram that: in populations, the distribution of drinking frequency is approximately unimodal and heavily right-skewed. The distribution of drinking frequency of people with hypertension is closer to 1, so we need to study the mean value difference of drinking frequency of the two groups.
+
+#### EDA Method Selection
+
+> Our parameters of interest are µ1 = the true mean alcday5 in high blood pressure group and µ2 = the true mean alcday5 of in none-high blood pressure group. We want to estimate wether there is a difference between µ1 and µ2. Next, summarize the properties of these variables and choose the appropriate EDA method.
+
+  - The relationship we study is between one numerical variable (drinking frequency) and one categorical (high blood pressure).
+  - Randomness: The individuals are selected randomly.
+  - Normal: The histogram give us reason to believe that the population distributions of alcday5 is heavily right-skewed. However, we can choose the sample sizes which are at least 30, by using the Central Limit Theorem, we are still safe using t procedures.
+  - Independent: Each case is independent with each other as long as the sample is much smaller than the pupulation.
+  - We don't know the standard deviation of alcday5 in population.
+
+So we can use the **large sample t-test** to estimate the difference.
+
+#### Data Sampling
+
+In order to study the difference of true means in two groups, 1/20 of the population was selected as the sample for large sample t-test. Although we don't know the sd of alcday5 in population, the sample size is large enough, the results is the same as z-test.
+
+Firstly, we sample 1/20 of the population to simplify the classify process.
+
+```{r}
+set.seed(236)
+alc_sub = sample(nrow(valid_alcday5),0.05*nrow(valid_alcday5))
+alc_sample = valid_alcday5[alc_sub,]
+```
+
+Secondly we divided the sample into two groups according to the state of blood pressure. 
+
+```{r}
+alc_sample_y = subset(alc_sample, X_rfhype5 == 'Yes')
+alc_sample_n = subset(alc_sample, X_rfhype5 == 'No')
+```
+
+Then we sample from these two groups, the sample size are both larger than 30.
+
+```{r}
+set.seed(238)
+alc_y_sub = sample(nrow(alc_sample_y),0.05*nrow(alc_sample_y))
+alc_y_small = alc_sample_y[alc_y_sub,]
+
+set.seed(240)
+alc_n_sub = sample(nrow(alc_sample_n),0.05*nrow(alc_sample_n))
+alc_n_small = alc_sample_n[alc_n_sub,]
+```
+
+#### Make Hypothesis
+
+**H0: **The mean value of alcday5 of hypertensive patients in population is the same as the mean value of alcday5 of none-hypertensive patients.
+
+**Ha: **The mean value of alcday5 of hypertensive patients in population is larger than the mean value of alcday5 of none-hypertensive patients.
+
+#### Large Sample T-Test
+
+```{r}
+t.test(alc_y_small$alcday5,alc_n_small$alcday5,alternative = "greater",var.equal = FALSE)
+```
+
+#### Conclusion
+
+The mean of alcday5 in hypertension group is 0.1492 and is 0.1658 in none-hypertension group. The P-value is 0.8362 in our test and it is more than $α$ which is 0.05. What's more, 95% confidence interval is always less than 0, we can not reject H0 and there is no diference between drinking frequency and high blood pressure.
+
+Contrary to popular belief, there was no significant correlation between drinking frequency and hypertension. **It is necessary for us to find more data and verify the results of our examination.**
+
+***
+
+### **cvdinfr4**:
+
+#### Variable Definition
+
+      whether have a heart disease?
+
+| Value | Value Label                                | Frequency | Percent |
+|-------|--------------------------------------------|-----------|---------|
+|     Yes |   have a heart disease  | 29,284        | 0.05954756      | 
+|     No |  not have a heart disease     | 459,904       | 0.93519191      |
+
+#### Data Analysis
+
+Eliminate the individuals whose values of cvdinfr4 or X_rfhype5 are null.
+```{r}
+cvdinfr4_data <- dplyr::select(brfss2013, cvdinfr4, X_rfhype5) %>% na.omit()
+```
+
+Plot **stacked-bar chart** to analyze the relationship between heart disease and hypertension.
+
+```{r}
+cvdinfr4_plot <- ggplot(cvdinfr4_data) + aes(x=cvdinfr4, fill=X_rfhype5) + geom_bar(position = "fill")
+cvdinfr4_plot <- cvdinfr4_plot + xlab("Categories of cvdinfr4 (whether have heart disease)") + 
+  ylab("Proportion") +  scale_fill_manual(values=c("#76eec6", "#ff6a6a"),name="X_rfhype5(whether have hypertension)")
+cvdinfr4_plot
+```
+
+It can be seen from the above plot that:
+
+1.    Among the people `with heart disease`, there are `more people with hypertension` than those without hypertension; 
+
+2.    In the group `without heart disease`, there are `fewer people with hypertension` than those without hypertension.
+
+#### EDA Method Selection
+
+> Our problem is to test the correlation between heart disease and hypertension. Next, summarize the properties of these variables and choose the appropriate EDA method.
+
+  - Each individual is classified according to both two categorical variables.
+  - Randomness: The individuals are selected randomly.
+  - Large size: The four expected counts in the 2*2 table is 5 or greater becasuse we choose large sample size.
+  - Independent: Each case is independent with each other.
+
+So we can use the **Chi-square test** to test for independence of smoking and hypertension. 
+
+
+#### Data Sampling
+
+In order to study the correlation between these two categorical variables of all individuals in brfss2013, 1/20 of the population was selected as the sample for chi-square test. Then draw two-way table to compare distributions of a single categorical variable cvdinfr4.
+
+```{r}
+set.seed(228)
+cvdinfr4_sub = sample(nrow(cvdinfr4_data),0.05*nrow(cvdinfr4_data))
+cvdinfr4_sample = cvdinfr4_data[cvdinfr4_sub,]
+
+table_cvdinfr4 = table(cvdinfr4_sample$cvdinfr4,cvdinfr4_sample$X_rfhype5)
+table_cvdinfr4
+```
+
+#### Make Hypothesis
+
+**H0:** There is no difference in the distribution of heart disease between hypertensive populations and non-hypertensive populations.
+
+**Ha:** There is a difference in the distribution of heart disease between hypertensive populations and non-hypertensive populations.
+
+#### Chi-squared test
+
+p-value is less than 2.2e-16.
+
+```{r}
+chisq.test(table_cvdinfr4)
+```
+
+#### Conclusion
+
+The P-value is smaller than 2.2e-16 in our test and it is less than $α$ which is 0.05. The small P-value gives us convincing 
+evidence to `reject H0` and conclude that there is a difference in the distribution of heart disease between hypertensive 
+
+Chi-square test can only help us conclude that cvdinfr4 has a significant effect on hypertension, but the contribution of this variable and the comprehensive effect between this variable and other variables need to be analyzed by using the model described below for regression analysis.
+
+***
+
+### **X_age_g**
+
+#### Variable Definition
+
+
+      Six-level imputed age category
+
+| Value | Value Label                                | Frequency | Percent |
+|-------|--------------------------------------------|-----------|---------|
+|     Age 18 to 24 |   18 <= AGE <= 24  | 27203           | 0.05531595            | 
+|     Age 25 to 34 |  25 <= AGE <= 34     | 50164       | 0.10200600            |
+|     Age 35 to 44 |   35 <= AGE <= 44  | 60416                   | 0.12285293            | 
+|     Age 45 to 54 |  45 <= AGE <= 54    | 83769                 | 0.17034009            |
+|     Age 55 to 64 |   55 <= AGE <= 64  | 109464                 | 0.22258960            | 
+|     Age 65 or older |   AGE >= 65     | 160747        | 0.32687103       |
+
+### Data Visualization
+
+Eliminate the individuals with the value of alcday5 and X_rfhype5 are blank or invalid in the data set. 
+
+```{r}
+valid_X_age_g <- dplyr::select(brfss2013, X_age_g, X_rfhype5) %>% na.omit()
+```
+
+We can draw the **Mosaic plot** to see the proportion of high blood pressure in each groups.
+
+```{r}
+table_3 = table(valid_X_age_g$X_age_g, valid_X_age_g$X_rfhype5)
+mosaicplot(table_3,xlab = "age_group", ylab = "Do you have hapertension?", main = "MosiacPlot of Age and Hypertension")
+```
+
+According to the Mosaic plot, the probability of having hypertension increases with age, so age is a potential factor for high blood pressure.
+
+#### EDA Method Selection
+
+> Our problem is to test the correlation between age and high blood pressure. Next, summarize the properties of these variables and choose the appropriate EDA method.
+
+  - Each individual is classified according to both of two categorical variables.
+  - Randomness: The individuals are selected randomly.
+  - Large size: The four expected counts in the 2*2 table is 5 or greater becasuse we choose large sample size.
+  - Independent: Each case is independent with each other.
+
+So we can use the **Chi-square test** to test for independence of age and hypertension. 
+
+#### Data Sampling
+
+In order to study the correlation between these two categorical variables of all individuals in brfss2013, 1/20 of the population was selected as the sample for chi-square test. Then draw two-way table to compare distributions of a single categorical variable X_age_g.
+
+```{r}
+set.seed(430)
+X_age_g_sub = sample(nrow(valid_X_age_g),0.05*nrow(valid_X_age_g))
+X_age_g_sample = valid_X_age_g[X_age_g_sub,]
+
+table_4 = table(X_age_g_sample$X_age_g,X_age_g_sample$X_rfhype5)
+table_4
+```
+#### Make Hypothesis
+
+**H0: **There is no difference in the distribution of hypertensive patients in each group with different age. 
+
+**Ha: **The probability of having high blood pressure increases with age.
+
+#### Chi-squared Test
+
+```{r}
+chisq.test(table_4)
+```
+
+p-value is less than 2.2e-16.
+
+#### Conclusion
+
+The P-value is smaller than 2.2e-16 in our test and it is less than $α$ which is 0.05. The small P-value gives us convincing 
+evidence to `reject H0` and conclude that there is a difference in the distribution of hypertensive patients in groups with different age.
+
+Chi-square test can only help us conclude that age has a significant effect on hypertension, but the contribution of this variable and the comprehensive effect between this variable and other variables need to be analyzed by using the model described below for regression analysis.
+
+
+***
+
+### **sleptim1**
+
+#### Variable Definition
+
+    average sleep time of a day, measured in hours
+
+| Value | Value Label                                | Frequency | Percent |
+|-------|--------------------------------------------|-----------|---------|
+|    0-24 | number of hours   | 484,401       | 0.9850053     | 
+
+
+#### Data Analysis
+
+Eliminate the individuals with the value of sleptim1 and X_rfhype5 are blank in the data set.
+
+```{r}
+valid_sleptim1 <- dplyr::select(brfss2013, sleptim1, X_rfhype5) %>% na.omit()
+```
+
+Then **summarize** the valid data and draw the **Bar plot** and **boxplot** to describe the spread.
+
+```{r}
+summary(valid_sleptim1)
+ggplot(valid_sleptim1, aes(x = sleptim1, fill = X_rfhype5)) + 
+    geom_bar(position="dodge") +
+    labs(title = "Distribution of Average Sleeping Time by Blood Pressure Level", 
+         y = "Density", x = "Average Sleep Time", col = "Blood Pressure Level") +
+    theme(plot.title = element_text(hjust = 0.5))
+boxplot(valid_sleptim1$sleptim1)
+```
+It can be seen from the bar chart and the boxplot:
+
+  - shape: In both populations, the distribution of bmi is unimodal and a little right-skewed.
+  - spread: For the whole population, the distribution of sleeping time is from 1 to 24.
+  - outliers: The shortest average sleeping time is 1 hour, and the longest average sleeping time is 24 hours, which is in the contrary of our common sense. According to the boxplot, there must be some outliers at the lower tail and upper tail. And after we checked some authoritative website and find that these extreme values are unbelivable, so we conclude that this is due to the mistakes the respondent made during the data collection. (reference:https://www.cdc.gov/sleep/about_sleep/how_much_sleep.html)
+
+To sum up, the outliers must be removed by using **1.5IQR Principle** before the test is carried out.
+
+#### Use 1.5IQR to remove outliers
+
+
+```{r}
+valid_sleptim1 <- valid_sleptim1 %>%
+    filter((valid_sleptim1$sleptim1>(quantile(valid_sleptim1$sleptim1,0.25))-1.5*IQR(valid_sleptim1$sleptim1))
+           & (valid_sleptim1$sleptim1<(quantile(valid_sleptim1$sleptim1,0.75))+1.5*IQR(valid_sleptim1$sleptim1)))
+```
+
+```{r}
+summary(valid_sleptim1)
+ggplot(valid_sleptim1, aes(x = sleptim1, fill = X_rfhype5)) + 
+    geom_bar(position="dodge") +
+    labs(title = "Distribution of Average Sleeping Time by Blood Pressure Level", 
+         y = "Density", x = "Average Sleep Time", col = "Blood Pressure Level") +
+    theme(plot.title = element_text(hjust = 0.5))
+```
+
+After removing the outliers, the distribution ss approximately unimodal symmetric, which is much closer to the reality.  
+
+
+The graph clearly shows that the average sleeping time distributions varies from high blood pressure group to normal blood presure group. Therefore, it is necessary to test the correlation between these two variables.
+
+#### EDA Method Selection
+
+> Our parameters of interest are µ1 = the true average sleeping time in high blood pressure group and µ2 = the true average sleeping time of in none-high blood pressure group. We want to estimate wether there is a difference between µ1 and µ2. Next, summarize the properties of these variables and choose the appropriate EDA method.
+
+  - The relationship we study is between one numerical variable (average sleeping time) and one categorical (high blood pressure).
+  - Randomness: The individuals are selected randomly.
+  - Normal: The histogram give us reason to believe that the population distributions of sleptim1 is roughly normal.
+  - Independent: Each case is independent with each other as long as the sample is much smaller than the pupulation.
+  - We don't know the standard deviation of sleptim5 in population.
+
+So we can use the **large sample t-test** to estimate the difference.
+
+#### Data Sampling
+
+In order to study the difference of true means in two groups, 1/20 of the population was selected as the sample for large sample t-test. Although we don't know the sd of sleptim1 in population, the sample size is large enough, the results is the same as z-test.
+
+Firstly, we sample 1/20 of the population to simplify the classify process.
+
+```{r}
+set.seed(125)
+slpt_sub = sample(nrow(valid_sleptim1),0.05*nrow(valid_sleptim1))
+slpt_sample = valid_sleptim1[slpt_sub,]
+```
+
+Secondly we divided the sample into two groups according to the state of blood pressure. 
+
+```{r}
+slpt_sample_y = subset(slpt_sample, X_rfhype5 == 'Yes')
+slpt_sample_n = subset(slpt_sample, X_rfhype5 == 'No')
+```
+
+Then we sample from these two groups, the sample size are both larger than 30.
+
+```{r}
+set.seed(201)
+slpt_y_sub = sample(nrow(slpt_sample_y),0.05*nrow(slpt_sample_y))
+slpt_y_small = slpt_sample_y[slpt_y_sub,]
+
+set.seed(202)
+slpt_n_sub = sample(nrow(slpt_sample_n),0.05*nrow(slpt_sample_n))
+slpt_n_small = slpt_sample_n[slpt_n_sub,]
+```
+
+#### Make Hypothesis
+
+**H0: **The mean value of sleptim1 of hypertensive patients in population is the same as the mean value of sleptim1 of none-hypertensive patients.
+
+**Ha: **The mean value of sleptim1 of hypertensive patients in population is smaller than the mean value of sleptim1 of none-hypertensive patients.
+
+#### Large Sample T-Test
+
+```{r}
+t.test(slpt_y_small$sleptim1,slpt_n_small$sleptim1,alternative = "less",var.equal = FALSE)
+```
+
+#### Conclusion
+
+The mean of sleptim1 in hypertension group is 7.090323 and is 6.953846 in none-hypertension group. The P-value is 0.9647 in our test and it is more than $α$ which is 0.05, so we `can not reject H0` and there is no diference between drinking frequency and high blood pressure. Meanwhile, we did another t test with alternative hypothesis as "greater", and find that it has some significant meaning, finally, we conclude that the average sleeping time in hypertension group is greater than that of non-hypertension group, we guess it is due to the awareness of hypertension him/herself. As long as someone know he/she has a hypertension, he/she tend to care for his/her body more.  
+
+***
+
+## **Model**
+
+### Data Preperation
+
+We filter out individuals that do not contain NA values and remove some
+outliers in valid data.
+
+```{r}
+valid_data <- dplyr::select(brfss2013, smoke100, exerany2, X_bmi5, X_age_g, cvdinfr4, X_rfhype5) %>% na.omit()
+
+valid_data <- valid_data %>%
+    filter((valid_data$X_bmi5>(quantile(valid_data$X_bmi5,0.25))-1.5*IQR(valid_data$X_bmi5))
+           & (valid_data$X_bmi5<(quantile(valid_data$X_bmi5,0.75))+1.5*IQR(valid_data$X_bmi5))) 
+
+valid_data$X_bmi5 = valid_data$X_bmi5/100
+pandoc.table(summary(valid_data),justify = "center")
+```
+
+### Train Data and Test Data
+
+We define 80 percent of the available data as training set and the
+remaining 20 percent as testing set.
+
+```{r}
+set.seed(228)
+train_set <- sample(nrow(valid_data),0.8*nrow(valid_data))
+test_set <- setdiff(seq_len(nrow(valid_data)), train_set)
+train_data = valid_data[train_set,]
+test_data = valid_data[test_set,]
+```
+
+### **Modal one: Logistic Regression**
+
+```{r}
+task_hypertension1 <- TaskClassif$new(id="Hypertension", backend = valid_data, target = "X_rfhype5", positive = "Yes")
+learner1 <- lrn("classif.log_reg", predict_type = "prob")
+learner1$train(task_hypertension1, row_ids = train_set)
+prediction1 <- learner1$predict(task_hypertension1, row_ids = test_set)
+learner1$model
+```
+>We can interpret the model coefficients as follows:
+When the other predictors are held constant, the log odds ratio between the contrast (25 <= Age <= 34) and the reference level (18 <= Age < 24) is 0.3806 the log odds ratio between the contrast (35 <= Age <= 44) and the reference level (18 <= Age < 24) is 0.8591, the log odds ratio between the contrast (45 <= Age <= 54) and the reference level (18 <= Age < 24) is 1.5361, the log odds ratio between the contrast (55 <= Age <= 64) and the reference level (18 <= Age < 24) is 2.1286, the log odds ratio between the contrast (Age >= 65) and the reference level (18 <= Age < 24) is 2.8643.   
+For a unit increase in BMI (being 1 more), the log odds ratio change will increase 0.1063. 
+When the other predictors are held constant, the log odds ratio between the contrast (cvdinfr4No) and the reference level (cvdinfr4Yes) is -0.9508.  
+When the other predictors are held constant, the log odds ratio between the contrast (exerany2No) and the reference level (exerany2Yes) is 0.2454.  
+When the other predictors are held constant, the log odds ratio between the contrast (smoke100No) and the reference level (smoke100Yes) is -0.1530.
+
+### **Modal two: Naive Bayes**
+
+```{r}
+task_hypertension2 <- TaskClassif$new(id="Hypertension", backend = valid_data, target = "X_rfhype5", positive = "Yes")
+learner2 <- lrn("classif.naive_bayes", predict_type = "prob")
+learner2$train(task_hypertension2, row_ids = train_set)
+prediction2 <- learner2$predict(task_hypertension2, row_ids = test_set)
+learner2$model
+```
+
+### **Modal three: Random Forest**
+
+```{r}
+task_hypertension3 <- TaskClassif$new(id="Hypertension", backend = valid_data, target = "X_rfhype5", positive = "Yes")
+learner3 <- lrn("classif.ranger", predict_type = "prob")
+learner3$train(task_hypertension3, row_ids = train_set)
+prediction3 <- learner3$predict(task_hypertension3, row_ids = test_set)
+learner3$model
+```
+
+## **Modal Comparision: Confuse Matrix**
+
+Put the test set into the model to obtain the predicted probability of
+hypertension for each individual. Set the threshold to 0.5: p>0.5 means
+we predict this individual has hypertension, p\<0.5 means that we
+predict him/her does not have hypertension. Then write down the
+confusion matrix combined with the actual value.
+
+Calculate the probabilities of TPR and TNR, then we can make conclusion:
+
+-   The prediction of the model for hypertensive patients
+-   The prediction of the model for non-hypertensive patients
+-   The overall prediction accuracy of the model
+
+```{r}
+# calculate accuracy, tpr and tnr
+f1 <- prediction1$confusion
+f1
+tp1 <- f1[2, 2]
+tn1 <- f1[1, 1]
+fp1 <- f1[2, 1]
+fn1 <- f1[1, 2]
+accuracy1 <- (tp1 + tn1)/(tp1 + tn1 + fp1 + fn1)
+tpr1 <- tp1/(tp1 + fn1)
+tnr1 <- tn1/(tn1 + fp1)
+```
+
+```{r}
+f2 <- prediction2$confusion
+f2
+
+tp2 <- f2[2, 2]
+tn2 <- f2[1, 1]
+fp2 <- f2[2, 1]
+fn2 <- f2[1, 2]
+accuracy2 <- (tp2 + tn2)/(tp2 + tn2 + fp2 + fn2)
+tpr2 <- tp2/(tp2 + fn2)
+tnr2 <- tn2/(tn2 + fp2)
+```
+
+```{r}
+f3 <- prediction3$confusion
+f3
+tp3 <- f3[2, 2]
+tn3 <- f3[1, 1]
+fp3 <- f3[2, 1]
+fn3 <- f3[1, 2]
+accuracy3 <- (tp3 + tn3)/(tp3 + tn3 + fp3 + fn3)
+tpr3 <- tp3/(tp3 + fn3)
+tnr3 <- tn3/(tn3 + fp3)
+```
+
+```{r}
+table <- data.frame(
+    Model = c("Logistic Regression", "Naive Bayes", "Random Forest"),
+    TPR = c(tpr1,tpr2,tpr3),
+    TNR = c(tnr1, tnr2, tnr3),
+    Accuracy = c(accuracy1, accuracy2, accuracy3)
+)
+table
+```
+
+Now, we compared the two models according to TPR, TNR and Accuracy. From
+the table above, we can see that:
+
+1\. The probability of correct prediction of positive classes, namely
+TPR, of Logistic Regression model and Naive Bayes model is approximately
+equal, 1% higher than that of Random Forest model. This means that the
+three model shows little difference in predicting patients with
+hypertension.
+
+2\. The probability of correct prediction of positive classes, namely
+TNR, of Random Forest model, is 2% higher than that of Logistic
+Regression model and 3% higher than that of Naive Bayes model. This
+means that Random Forest model predicts non-hypertensive patients with
+better outcomes. But the other two models did not do much worse in this
+aspect. And all three models does less well in predicting patients
+without hypertension than in predicting patients with hypertension.
+
+3\. The overall probability of correct prediction, namely Accuracy, of
+the Logistic Regression model and Naive Bayes model is approximately
+equal, 1% lower than that of Random Forest model. This means that, the
+Logistic Regression model performs worst and the first two models
+performs almost equally, but the Random Forest model predicts slightly
+better.
+
+Draw the ROC curve and calculate the AUC, then we can make conclusion:
+
+-   Draw the ROC curve
+-   Calculate the AUC
+
+```{r}
+library(precrec)
+autoplot(prediction1, type = "roc")
+probability = prediction1$prob[,1]
+mlr3measures::auc(prediction1$truth,probability,"Yes")
+```
+
+```{r}
+autoplot(prediction2, type = "roc")
+probability = prediction2$prob[,1]
+mlr3measures::auc(prediction2$truth,probability,"Yes")
+```
+
+```{r}
+autoplot(prediction3, type = "roc")
+probability = prediction3$prob[,1]
+mlr3measures::auc(prediction3$truth,probability,"Yes")
+```
+
+Then we compared the two models through ROC curve and AUC value:
+
+1\. By observing the ROC curves of the two models, we can find that,
+compared with the Logistic Regression model and Naive Bayes model, the
+ROC curves of the Random Forest model are more inclined to the upper
+left corner.
+
+2\. More intuitively, AUC of Random Forest model is 0.776, which is
+larger than 0.775 of Logistic Regression model and 0.773 of Naive Bayes
+model.
+
+Therefore, from the perspective of ROC curve and AUC, the Random Forest
+model has a better classification effect.
+
+### Model Conclusion
+In conclusion, the Random Forest model has a little better
+classification effect. Overall, there is almost no difference between
+the three models. The machine models may perform better after hyperparameter tuning methods, but it can be extremely time-consuming to capture a suitable hyperparameter. So in the scope of our report, we choose to leave it for future exploration.  
+
+
+## **conclusion**
+
+In this project, we select X_rfhype5(whether to have hypertension) as response variable. After consulting the literature and analyzing the data set (brfss2013.RData), we select seven explanatory variables that may have great impact on the response variable. In the EDA(exploratory data analysis), a variety of methods and plots had been used, such as using 1.5IQR principle to delete outliers, sampling, normalization, hypothesis test, chi-squared test, large sample T test, Density curve, Contingency table, stacked-bar chart, boxplot,  histogram, Mosaic plot, QQ plot, Bar plot, etc. After finishing the EDA of these variables, we can concluded that five exploratory variables have great impact on the response variable and the other two has no significant effect on response variable. These five variables with great impact are respectively Smoke100 (whether have smoked over 100 times), Exerany2 (frequency of exercise), X_bmi5 (value of BMI), cvdinfr4 (whether to have heart disease) and X_age_g (age level). In order to find out the contribution of each exploratory variable to the response variable, we train three models, such as Logistic Regression, Naive Bayes and Random Forest. We could use these models to predict whether an individual have hypertension if given the data of those five exploratory variables.
+
+## **Further Improvement**
+
+### Improvement Method 
+
+In the process of data collection, methods and channels should be more diversified
+
+In the process of model selection: we should know more about the applicable conditions of the model
+
+In the process of model analysis:  more model analysis methods should be introduced.
+
+In the significance test method: the rationality of normalization for univariate variable such as alcday5 needs further consideration.
+
+
+### Further Research Direction
+
+Hypertension has become a high-risk factor that seriously threatens the lives of people in all countries in the world. Through the research of this project, we believe that we urgently need to conduct a broader and deeper medical investigation, which will not only involve people's living habits and physical health, but also pay more attention to the importance of personal environmental factors and mental health. In fact, we have found that whether suffering from depression and the stability of a person’s marital status will have a more significant impact on people suffering from hypertension. The prerequisite for the so-called struggle is that you must live. We believe that society should arouse the importance of maintaining a good learning and working environment in the future, and emphasize that we should vigorously spread the rich and diverse scientific and cultural knowledge, and call for the necessity of humanistic and social care.
