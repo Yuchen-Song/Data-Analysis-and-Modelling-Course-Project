@@ -1,0 +1,165 @@
+---
+title: "lab2"
+author: "Yuchen Song_201830360498-Xuewen Wang_201830120252"
+date: "2021/9/15"
+output: 
+    html_document:
+      toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## <font color=blue>Load data</font> 
+```{r}
+load(url("http://www.stat.duke.edu/~cr173/Sta102_Sp16/Lab/cdc.Rdata"))
+```
+
+***
+### <font color=blue>Ex1</font>
+```{r}
+dim(cdc)
+```
+There are 20,000 cases in this data set, and 9 variables.  
+genhlth: categorical(excellent, very good, good, fair or poor)  
+exerany: categorical(1,0)  
+hlthplan: categorical(1,0)
+smoke100: categorical(1,0)  
+height: quantitative  
+weight: quantitative  
+wtdesire: quantitative  
+age: quantitative  
+gender: categorical(m,f)  
+
+***
+### <font color=blue>Ex2</font>
+***
+Numerical summary:
+```{r}
+summary(cdc$height)
+summary(cdc$age)
+```
+***
+Interquartile range:
+```{r}
+IQR(cdc$height)
+IQR(cdc$age)
+```
+***
+Relative frequency distribution:
+```{r}
+table(cdc$gender)/20000
+table(cdc$exerany)/20000
+```
+***
+Males in the sample:
+```{r}
+table(cdc$gender)["m"]
+```
+***
+Proportion of the excellent health:
+```{r}
+table(cdc$genhlth)["excellent"]/20000
+```
+
+***
+### <font color=blue>Ex3</font>
+```{r}
+mosaicplot(table(cdc$gender,cdc$smoke100))
+```
+  
+The mosaic plot reveals that males are more prone to smoke over 100 cigarettes in the lifetime.
+
+***
+### <font color=blue>Ex4</font>
+```{r}
+under23_and_smoke <- subset(cdc, cdc$age<23 & cdc$smoke100==1)
+```
+
+***
+### <font color=blue>Ex5</font>
+```{r echo=FALSE}
+bmi <- (cdc$weight / cdc$height^2) * 703
+boxplot(bmi ~ cdc$genhlth)
+```
+  
+The box plot shows that with the general health condition improves, the less BMI is likely to get and the denser the distribution will be. 
+  
+
+```{r echo=FALSE}
+bmi <- (cdc$weight / cdc$height^2) * 703
+boxplot(bmi ~ cdc$exerany,main="Exercise and bmi:")
+```
+  
+We think that exercise makes people healthier, so it must has something to do with the bmi.  
+The figure suggests that the people who exercised in the past month are more likely to have lower bmi, but the spread shows that there may be someone who want to just started excerse so their bmi didn't improve sharply.  
+
+***
+### <font color=blue>Ex6</font>
+```{r}
+cdc$exerany_cat = NA  # create new variable, and fill it in with NAs first
+cdc$exerany_cat[cdc$exerany == 1] = "exercised"
+cdc$exerany_cat[cdc$exerany == 0] = "didn't exercise"
+cdc$exerany_cat = as.factor(cdc$exerany_cat)  # save new variable as factor
+boxplot(bmi ~ cdc$exerany_cat)
+```
+
+***
+### <font color=blue>Ex7</font>
+```{r}
+cdc$genhlth_twolevs = NA  # create new variable, and fill it in with NAs first
+cdc$genhlth_twolevs[cdc$genhlth %in% c("fair", "poor")] = "bad"
+cdc$genhlth_twolevs[cdc$genhlth %in% c("good", "very good", "excellent")] = "better"
+cdc$genhlth_twolevs = as.factor(cdc$genhlth_twolevs)  # save new variable as factor
+boxplot(bmi ~ cdc$genhlth_twolevs)
+```
+
+***
+### <font color=blue>Ex8</font>
+```{r}
+median_height = median(cdc$height)
+cdc$height_cat = NA  # create new variable, and fill it in with NAs first
+cdc$height_cat[cdc$height < median_height] = "below median"
+cdc$height_cat[cdc$height >= median_height] = "at or above median"
+cdc$height_cat = as.factor(cdc$height_cat)  # save new variable as factor
+cdc$height_cat = factor(cdc$height_cat, levels = c("below median", "at or above median"))
+table(cdc$height_cat)
+```
+
+***
+### <font color=blue>Ex9</font>
+```{r}
+boxplot(cdc$wtdesire ~ cdc$smoke100)
+```
+  
+From the box plot, we cannot say there is an apparent relationship between the two viables, so we draw another plot, namely, mosaic plot.  
+```{r}
+median_wtdesire = median(cdc$wtdesire)
+cdc$wtdesire_cat = NA  # create new variable, and fill it in with NAs first
+cdc$wtdesire_cat[cdc$wtdesire < median_wtdesire] = "below median"
+cdc$wtdesire_cat[cdc$wtdesire >= median_wtdesire] = "at or above median"
+cdc$wtdesire_cat = as.factor(cdc$wtdesire_cat)  # save new variable as factor
+cdc$wtdesire_cat = factor(cdc$wtdesire_cat, levels = c("below median", "at or above median"))
+mosaicplot(table(cdc$wtdesire_cat,cdc$smoke100))
+```
+  
+We separate the data into two categories, one below median and the other above median.  
+From the mosaic plot we can see that as the desired weight grows, the number of cigarettes consumed over 100 increases.
+
+
+***
+### <font color=blue>Ex10</font>
+```{r}
+mosaicplot(table(cdc$age,cdc$smoke100),main = "Smoke habit vs Age")
+```
+  
+Before ~65, the number of people who smoke over 100 cigarettes increases, and after that the number drops. We assume that people who lives longer lives don't smoke that much.   
+
+***
+### <font color=blue>Ex11</font>
+```{r}
+mosaicplot(table(cdc$age[cdc$age>=18 & cdc$age<=58],cdc$smoke100[cdc$age>=18 & cdc$age<=58]),main = "Smoke habit vs Age")
+```
+  
+We choose the age range based on the number of cases. Any age with cases less than 250 has been deleted.

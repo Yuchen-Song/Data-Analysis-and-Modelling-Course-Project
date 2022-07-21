@@ -1,0 +1,128 @@
+---
+title: "lab4"
+author: "Yuchen Song_201830360498 - Xuewen Wang_201830120252"
+date: "2021/9/29"
+output: 
+    html_document:
+      toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### <font color=blue>Data Loading and Pre-processing</font>
+```{r}
+load(url("http://www.openintro.org/stat/data/bdims.RData"))
+mdims = subset(bdims, sex == 1)
+fdims = subset(bdims, sex == 0)
+```
+
+***
+### <font color=blue>Ex1</font>
+```{r}
+hist(mdims$hgt,main = "Histogram of men's heights")
+hist(fdims$hgt,main = "Histogram of women's heights")
+```
+  
+We can compare them from the aspects of symmetric, peak, the overall spread and other statistical magnitudes like std, mean, median, etc.
+
+***
+### <font color=blue>Ex2</font>
+```{r echo=FALSE}
+fhgtmean = mean(fdims$hgt)
+fhgtsd   = sd(fdims$hgt)
+hist(fdims$hgt, probability = TRUE, ylim = c(0, 0.06))
+x = 140:190
+y = dnorm(x = x, mean = fhgtmean, sd = fhgtsd)
+lines(x = x, y = y, col = "blue")
+```
+  
+Yes, based on the plot, we can say that the data follow a nearly normal distribution.
+
+***
+### <font color=blue>Ex3</font>
+```{r}
+set.seed(1116)
+qqnorm(fdims$hgt,main = "normal probability plot from real dataset")
+qqline(fdims$hgt)
+sim_norm = rnorm(n = length(fdims$hgt), mean = fhgtmean, sd = fhgtsd)
+qqnorm(sim_norm,main = "normal probability plot of simulation")
+qqline(sim_norm)
+```
+  
+Basically, most of the points fall on the line, but a few of them is actually not on the line, especially some points towards the tails.  
+The overall pattern of the simulated plot is similar to real data plot, however, the middle part of the simulated plot fluctuates less and fit with the line better.   
+
+***
+### <font color=blue>Ex4</font>
+```{r}
+set.seed(1121)
+qqnormsim(fdims$hgt)
+```
+  
+Compared with the normal probability plots created for simulated data, the plot of the real data shows a similar distribution, so it has some evidence to show that the female heights are nearly normal.
+
+***
+### <font color=blue>Ex5</font>
+```{r}
+set.seed(1127)
+qqnorm(mdims$hgt,main = "normal probability plot from real dataset")
+qqline(mdims$hgt)
+qqnormsim(mdims$hgt)
+```
+  
+From the plots, we can determine that male weights appear to come from a normal distribution.  
+
+***
+### <font color=blue>Ex6</font>
+```{r}
+fwgtmean = mean(fdims$wgt)
+fwgtsd   = sd(fdims$wgt)
+wgt_prob_theo <- 1 - pnorm(q = 72, mean = fwgtmean, sd = fwgtsd)
+wgt_prob_empir <- sum(fdims$wgt > 72) / length(fdims$wgt)
+sprintf("The probability that the observed female weight value is more than 72 is %f and %f, from theoretical and empirical respectively. The difference between theoratical and empirical is %f",wgt_prob_theo,wgt_prob_empir,wgt_prob_theo-wgt_prob_empir)
+```
+
+***
+### <font color=blue>Ex7</font>
+```{r}
+hgt_prob_theo <- 1 - pnorm(q = 182, mean = fhgtmean, sd = fhgtsd)
+hgt_prob_empir <- sum(fdims$hgt > 182) / length(fdims$hgt)
+sprintf("The probability that the observed female height value is more than 182 is %f and %f, from theoretical and empirical respectively. The difference between theoratical and empirical is %f",hgt_prob_theo,hgt_prob_empir,hgt_prob_theo-hgt_prob_empir)
+```
+  
+From the calculation above, we can find that the height variable has a closer agreement between the two methods.
+
+***
+### <font color=blue>Ex8</font>
+a) 2  
+b) 3  
+c) 4  
+d) 1  
+
+***
+### <font color=blue>Ex9</font>
+```{r}
+table(fdims$age)
+```
+Because there are many repeated values.  
+
+***
+### <font color=blue>Ex10</font>
+```{r}
+qqnorm(fdims$kne.di)
+qqline(fdims$kne.di)
+```
+  
+Based on this normal probability plot, this variable is right skewed.  
+```{r echo=FALSE}
+fknemean = mean(fdims$kne.di)
+fknesd   = sd(fdims$kne.di)
+hist(fdims$kne.di, probability = TRUE)
+x = 10:30
+y = dnorm(x = x, mean = fknemean, sd = fknesd)
+lines(x = x, y = y, col = "red")
+```
+
+From the histogram, it is confirmed.

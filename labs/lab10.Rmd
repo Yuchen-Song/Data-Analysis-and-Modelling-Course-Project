@@ -1,0 +1,146 @@
+---
+title: "lab10"
+author: "Yuchen Song_201830360498 - Xuewen Wang_201830120252"
+date: "2021/12/1"
+output: 
+    html_document:
+      toc: true
+---
+## The data
+```{r}
+load(url("http://www.openintro.org/stat/data/evals.RData"))
+```
+
+***
+## Exploring the data
+### Ex1
+```{r}
+plot(evals$cls_students~evals$cls_did_eval)
+m1 <- lm(cls_students ~ cls_did_eval, data = evals)
+abline(m1)
+```
+  
+The two variables are approximately linear correlated.  
+
+***
+## Simple linear regression
+### Ex2
+```{r}
+plot(evals$score ~ evals$bty_avg)
+```
+
+```{r}
+plot(jitter(evals$score)~evals$bty_avg)
+m_bty <- lm(score ~ bty_avg, data = evals)
+abline(m_bty)
+summary(m_bty)
+```
+  
+The initial plot cannot show all the data points due to the coincide.  
+$\hat{y}=b_0+b_1x$  
+$\hat{score}=3.88034+0.06664\times bty\_avg$  
+The slope means that when the average beauty rating of professor goes up 1 unit, the average professor evaluation score would raise about 0.06664 units.  
+The P-value is small(5.08e-05), so the beauty score is a statistically significant predictor.  
+On the other hand, whenever $bty\_avg$ goes up 1 unit, the $score$ only increases by 0.06664 units, which implies that this slope is not a practically significant predictor.  
+
+## Multiple linear regression
+```{r}
+plot(evals$bty_avg ~ evals$bty_f1lower)
+cor(evals$bty_avg, evals$bty_f1lower)
+```
+```{r}
+plot(evals[,13:19])
+```
+
+```{r}
+m_bty_gen = lm(score ~ bty_avg + gender, data = evals)
+summary(m_bty_gen)
+```
+
+***
+### Ex3
+```{r}
+par(mfrow = c(2, 2))
+plot(m_bty)
+```
+  
+The conditions for linear regression is:  
+Independence, Linear Relationship, Constant Variance, Normality of Residuals, and No Influential Points.  
+Firstly, independence is met by the question specification.  
+Secondly, as we can see in the previous scatter plot, the variable is roughly linear.  
+Thirdly, in the residual plot, all the residuals are evenly distributed within the two parallel lines around the center line.  
+Fourthly, from the qqplot, the residuals are approximately in a straight line, so the Normality of Residuals condition can be met.  
+Fifthly, In the Residuals vs Leverage plot, we see no points with large Cook’s Distance(greater than 5 or 10).  
+
+***
+### Ex4
+Yes, it is. Because the P-value is still very small(6.48e-06).  
+Yes, the parameter estimate has been changed to $\hat{\beta}_0=3.74734,\ \hat{\beta}_1=0.07416,\ and\  \hat{\beta}_2=0.17239$, and the model for male is:  
+$\hat{score}=3.74734+0.07416\times beauty\_avg+0.17239$  
+Male professors tend to have higher evaluation score.  
+```{r}
+multiLines(m_bty_gen)
+```
+***
+### Ex5
+```{r}
+m_bty_rank = lm(score ~ bty_avg + rank, data = evals)
+summary(m_bty_rank)
+```
+  
+R adds another line to it, and then, like the 2 levels categories one.  
+
+## The search for the best model
+### Ex6
+We expect that the variable cls_students has the highest p-value.  
+Because total number of students in class has little to do with the evaluate score, as we can guess.  
+
+***
+### Ex7
+```{r}
+m_full <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_profs + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+summary(m_full)
+```
+  
+Our guess in the previous exercise was incorrect, since the variable cls_prof has the largest p-value(0.77806), which indicates that it has least association with the professor’s evaluation score.  
+
+***
+### Ex8
+```{r}
+m_full <- lm(score ~ rank + ethnicity + gender + language + age + cls_perc_eval 
+             + cls_students + cls_level + cls_credits + bty_avg 
+             + pic_outfit + pic_color, data = evals)
+summary(m_full)
+```
+  
+Basically the coefficients and significance of the other explanatory variables do not change much.  
+This implies that the dropped variable was non collinear with the other explanatory variables.  
+
+***
+### Ex9
+```{r}
+m_full_final <- lm(score ~ ethnicity + gender + language + age + cls_perc_eval + cls_credits + bty_avg + pic_color, data = evals)
+summary(m_full_final)
+```
+  
+Using the Backward-selection with R_adjusted approach, our final model is:  
+$\hat{score}=\hat{b}_0+\hat{b}_1\times ethnicitynot\ minority +\hat{b}_2\times gendermale + \hat{b}_3\times languagenon-english + \hat{b}_4\times age+\hat{b}_5\times cls\_perc\_eval\\ +\hat{b}_6\times cls\_creditsone credit + \hat{b}_7\times bty\_avg+\hat{b}_8\times pic\_colorcolor$  
+
+
+***
+### Ex10
+```{r}
+par(mfrow = c(2, 2))
+plot(m_full_final)
+```
+  
+Similar analysis as exercise 3, we find that all 5 conditions can be met well for our final model.  
+The conditions for linear regression is:  
+Independence, Linear Relationship, Constant Variance, Normality of Residuals, and No Influential Points.  
+Firstly, independence is met by the question specification.  
+Secondly, as we can see in the previous scatter plot, the variable is roughly linear.  
+Thirdly, in the residual plot, all the residuals are evenly distributed within the two parallel lines around the center line.  
+Fourthly, from the qqplot, the residuals are approximately in a straight line, so the Normality of Residuals condition can be met.  
+Fifthly, In the Residuals vs Leverage plot, we see no points with large Cook’s Distance(greater than 5 or 10).  

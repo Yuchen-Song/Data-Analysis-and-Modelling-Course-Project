@@ -1,0 +1,101 @@
+---
+title: "lab3"
+author: "Yuchen Song_201830360498  -  Xuewen Wang_201830120252"
+date: "2021/9/22"
+output: 
+    html_document:
+      toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### <font color=blue>Load data</font>
+```{r}
+load(url("http://www.openintro.org/stat/data/kobe.RData"))
+```
+
+***
+### <font color=blue>Ex1</font>
+A streak length of 1 means that Kobe hit one ball after his last miss and until he missed another one(hits:1, misses:1), and a streak length of 0 means that he hit no ball after his last miss and until he missed another one(hits:0, misses:1).
+
+***
+### <font color=blue>Ex2</font>
+```{r echo=FALSE}
+kobe_streak = calc_streak(kobe$basket)
+barplot(table(kobe_streak))
+```
+  
+From the bar chart, we can see that the distribution is like half of a normal distribution, with 0 the most and 4 the least.  
+0 appears the most time.  
+4 is his longest steak of baskets.  
+
+***
+### <font color=blue>Ex3</font>
+```{r}
+Goal_pre <- table(kobe$basket)["H"]/length(kobe$basket)
+sprintf("Kobe's field goal percentage in the 2009 NBA Finals is %f, so the difference is %f",Goal_pre, Goal_pre-0.45)
+```
+
+***
+### <font color=blue>Ex4</font>
+```{r}
+set.seed(624)
+outcomes = c("heads", "tails")
+sim_unfair_coin = sample(outcomes, size = 100, replace = TRUE, prob = c(0.2, 0.8))
+sprintf("In our simulation, there are %d flips came up heads.",table(sim_unfair_coin)["heads"])
+```
+
+***
+### <font color=blue>Ex5</font>
+```{r}
+set.seed(624)
+outcomes = c("H", "M")
+sim_basket = sample(outcomes, size = 1, replace = TRUE)
+sim_basket = sample(outcomes, size = 133, replace = TRUE, prob = c(0.45, 0.55))
+```
+The changes are "size=133" and "prob = c(0.45, 0.55)" in the parameters of the function "sample".  
+
+***
+### <font color=blue>Ex6</font>
+```{r}
+kobe_streak_sim = calc_streak(sim_basket)
+barplot(table(kobe_streak_sim))
+```
+  
+The distribution is that length 0 is the most, and when length goes larger, the number of steaks of that length goes down. The largest length is 6.  
+0 appears the most times.  
+6 is the player’s longest streak.  
+
+***
+### <font color=blue>Ex7</font>
+```{r}
+set.seed(624)
+outcomes = c("H", "M")
+sim_basket = sample(outcomes, size = 133, replace = TRUE, prob = c(0.45, 0.55))
+```
+
+***
+### <font color=blue>Ex8</font>
+```{r}
+set.seed(1133)
+sim_basket = sample(outcomes, size = 133, replace = TRUE, prob = c(0.45, 0.55))
+kobe_streak_sim = calc_streak(sim_basket)
+barplot(table(kobe_streak_sim))
+```
+  
+We would expect that they have a similar distribution, since the probability distribution is the same.  
+But they cannot be exactly same since the simulation varies every time when we used different seeds.  
+
+***
+### <font color=blue>Ex9</font>
+The overall distribution is somewhat similar, but there are a few differences:  
+For the simulated case in exercise 5, it has some longer steak lengths(up to 5 and 6), while in actual data, the maximum steak length is 4.  
+Moreover, the 0s in the simulated data is more than that of real data, and the counts of  1s in real data is higher than the simulated one.   
+
+***
+### <font color=blue>Ex10</font>
+We would say that the hot hand model might not explain Kobe's shooting patterns.  
+Firstly, our simulation is based on the assumption of a independent player, and the distribution of the steak length is roughly the same to that of Kobe's.  
+Secondly, if the hot hand phenomenon does exists, then the length of Kobe's steaks must be longer than that of the simulated player. However, in the bar chart it is clear that the simulated player gets more 4s, 5s and 6s than Kobe. 

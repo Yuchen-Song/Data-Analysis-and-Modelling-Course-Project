@@ -1,0 +1,110 @@
+---
+title: "lab6"
+author: "Yuchen Song_201830360498 - Xuewen Wang_201830120252"
+date: "2021/10/13"
+output: 
+    html_document:
+      toc: true
+---
+
+### <font color=blue>Data Loading and Pre-processing</font>
+```{r}
+load(url("http://www.openintro.org/stat/data/ames.RData"))
+population = ames$Gr.Liv.Area
+```
+
+***
+### <font color=blue>Ex1</font>
+```{r}
+set.seed(2152)
+samp = sample(population, 60)
+hist(samp,breaks = 10)
+summary(samp)
+```
+  
+The distribution is approximately unimodal Normal distribution with center at about 1400, and there are outliers at some point about 3000.  
+
+***
+### <font color=blue>Ex2</font>
+The distribution spreads from 500 to 3000, and it is nearly symmetrical.  
+We would like to choose the "typical" to be 1411, which is the median.  
+To us, the size means the average living area in Ames, it is more accurate than the mean because there are outliers.  
+
+***
+### <font color=blue>Ex3</font>
+It cannot be identical since we set the different sample seed.  
+However, it may be similar because we select the sample from the same data set and the point estimate is likely to be unbiased.
+
+***
+### <font color=blue>Ex4</font>
+```{r}
+sample_mean = mean(samp)
+sample_deviation = sd(samp)
+sde = sample_deviation/sqrt(60)
+lower = sample_mean - 1.96 * sde
+upper = sample_mean + 1.96 * sde
+sprintf("The 95%% confidence interval for the true average size of houses in Ames is [%f,%f]",lower,upper)
+```
+
+***
+### <font color=blue>Ex5</font>
+“95% confidence” means that we have 95% confidence that our estimation is correct.  
+In other words, the chance for a case that does not lie in our estimate interval only takes about 5%.  
+
+***
+### <font color=blue>Ex6</font>
+```{r}
+mean(population)
+set.seed(2220)
+samp = sample(population, 60)
+sample_mean = mean(samp)
+sample_deviation = sd(samp)
+sde = sample_deviation/sqrt(60)
+lower = sample_mean - 1.96 * sde
+upper = sample_mean + 1.96 * sde
+c(lower, upper)
+```
+  
+The value of population mean lies in the estimate interval in both cases.  
+
+***
+### <font color=blue>Ex7</font>
+We expect about 95% of these intervals captures the true population mean.  
+Because we estimate that it is the 95% confidence interval. If we estimate many times, our estimation is separate, so the probability for there estimated interval to capture the true population mean is still 95%.  
+
+***
+### <font color=blue>Ex8</font>
+```{r}
+samp_mean = rep(NA, 100)
+samp_sd = rep(NA, 100)
+n = 60
+for(i in 1:100){
+  set.seed(i)
+  samp = sample(population, n) # obtain a sample of size n = 60 from the population
+  samp_mean[i] = mean(samp)    # save sample mean in ith element of samp_mean
+  samp_sd[i] = sd(samp)        # save sample sd in ith element of samp_sd
+}
+lower_vector = samp_mean - 1.96 * samp_sd / sqrt(n) 
+upper_vector = samp_mean + 1.96 * samp_sd / sqrt(n)
+plot_ci(lower_vector, upper_vector, mean(population))
+```
+  
+The proportion is 96/100 = 96%, which is not exactly the confidence level(but very close).  
+We could use the randomness of sampling to explain that.  
+It could be more precise when we take a larger sample size.
+
+***
+### <font color=blue>Ex9</font>
+We choose the confidence level of 99%, whose critical value is 2.575.
+
+***
+### <font color=blue>Ex10</font>
+```{r}
+samp_mean = samp_mean[1:50]
+samp_sd = samp_sd[1:50]
+lower_vector = samp_mean - 2.575 * samp_sd / sqrt(n) 
+upper_vector = samp_mean + 2.575 * samp_sd / sqrt(n)
+plot_ci(lower_vector, upper_vector, mean(population))
+```
+
+The percentage is 49/50=98%, which is very close to 99(but not equal).

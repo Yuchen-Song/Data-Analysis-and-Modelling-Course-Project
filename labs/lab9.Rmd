@@ -1,0 +1,125 @@
+---
+title: "lab9"
+author: "Yuchen Song_201830360498 - Xuewen Wang_201830120252"
+date: "2021/11/24"
+output: 
+    html_document:
+      toc: true
+---
+***
+## <font color=blue>The data</font>
+```{r}
+load(url("http://www.openintro.org/stat/data/mlb11.RData"))
+```
+
+
+### <font color=blue>Ex1</font>
+Scatter plot.  
+```{r}
+plot(mlb11$at_bats,mlb11$runs)
+cor(mlb11$runs, mlb11$at_bats)
+```
+  
+Yes, it is kind of linear, but the correlation is not strong enough.  
+These two variables are quantitative/numerical variables, which are positively correlated, but as said above, they are not strongly correlated. Also, we can spot some obvious outliers from the imaginary regression line.  
+
+***
+## <font color=blue>Sum of squared residuals</font>
+### <font color=blue>Ex2</font>
+```{r}
+plot_ss(x = mlb11$at_bats, y = mlb11$runs, showSquares = TRUE)
+```
+***
+## <font color=blue>The linear model</font>
+### <font color=blue>Ex3</font>
+```{r, echo=FALSE}
+m1 <- lm(runs ~ at_bats, data = mlb11)
+```
+```{r}
+m2 <- lm(runs ~ homeruns, data = mlb11)
+summary(m2)
+```
+
+  
+The equation of the regression line is: $\hat{y}=415.2389+1.8345*homeruns$  
+The slope tells us that whenever homeruns increse by a unit, there should be a 1.8345 units increase in the run.  
+
+***
+## <font color=blue>Prediction and prediction errors</font>
+### <font color=blue>Ex4</font>
+```{r}
+plot(mlb11$runs ~ mlb11$at_bats)
+abline(m1)
+```
+
+He would predict the runs at $\hat{y}=-2789.2429+0.6305*5585=732.0996$.  
+The true runs for at-bats of 5585 is 708, which indicates that this is an overestimation, by 732.0996-708=24.0996.
+```{r}
+subset(mlb11,mlb11$at_bats==5585)["runs"]
+```
+
+***
+## <font color=blue>Model diagnosticss</font>
+### <font color=blue>Ex5</font>
+```{r}
+plot(m1$residuals ~ mlb11$at_bats)
+abline(h = 0, lty = 3)  # adds a horizontal dashed line at y = 0
+```
+  
+The points are roughly evenly distributed around the dashed line, which implies that the model line is a good in Linearity, and that the two variables are linear correlated.  
+
+***
+### <font color=blue>Ex6</font>
+```{r}
+hist(m1$residuals)
+qqnorm(m1$residuals)
+qqline(m1$residuals)  # adds diagonal line to the normal prob plot
+```
+  
+Based on the two plots, we can say that the nearly normal residuals condition appears to be met.  
+
+***
+### <font color=blue>Ex7</font>
+Based on the residual plot, we can spot that the residuals are distributed evenly around the line, so the constant variablilty condition has been met. 
+
+***
+## <font color=blue>Additional Exercises</font>
+### <font color=blue>Ex8</font>
+```{r}
+plot(mlb11$hits,mlb11$runs)
+m3 <- lm(runs ~ hits, data = mlb11)
+abline(m3)
+```
+  
+At the first glance, the two variables are roughly linearly correlated with each other.  
+
+***
+### <font color=blue>Ex9</font>
+```{r}
+summary(m1)
+summary(m3)
+```
+  
+The $R^2$ for runs and hits is 0.6419, while the $R^2$ for runs and at_bats is 0.3729, so this relationship is stronger than that of the first model.   
+Yes, in most of the time, the model with larger R_squared is a better fitting of the data, in other words, the prediction using this model is more accurate.  
+
+***
+### <font color=blue>Ex10</font>
+
+```{r}
+plot(mlb11$wins,mlb11$runs)
+cor(mlb11$wins,mlb11$runs)
+m4 <- lm(runs ~ wins, data = mlb11)
+abline(m4)
+summary(m4)
+```
+
+```{r}
+plot(mlb11$bat_avg,mlb11$runs)
+cor(mlb11$bat_avg,mlb11$runs)
+m5 <- lm(runs ~ bat_avg, data = mlb11)
+abline(m5)
+summary(m5)
+```
+  
+From what has been demonstrated above, we can say that the best variable to predict the runs is bat_avg, with R_Square of 0.6561 and cor of 0.8099859.  

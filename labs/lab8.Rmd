@@ -1,0 +1,142 @@
+---
+title: "lab8"
+author: "Yuchen Song_201830360498 - Xuewen Wang_201830120252"
+date: "2021/11/10"
+output: 
+    html_document:
+      toc: true
+---
+***
+## The survey
+
+
+### <font color=blue>Ex1</font>
+
+These percentages are population parameters.
+
+***
+### <font color=blue>Ex2</font>
+
+We must assume that the sampling method(sample collected) is random, normal and independent. Also, the sample should include as more countries and races as possible.  
+Yes, it is reasonable. As long as we use proper approach.  
+
+***
+### <font color=blue>Data Loading</font>
+```{r}
+load(url("http://www.openintro.org/stat/data/atheism.RData"))
+```
+
+### <font color=blue>Ex3</font>
+There are 57 rows and 5 columns in Table 6.  
+Each row represent the data of a country.  
+The atheism in every row refers to the 4th column, which represents the percentage that atheist in population.  
+
+***
+### <font color=blue>Ex4</font>
+```{r}
+us12 = subset(atheism, nationality == "United States" & year == "2012")
+cal = table(us12$response)
+cal["atheist"]/(cal["atheist"]+cal["non-atheist"])
+```
+  
+Yes, the calculated response ratio agree with the percentage in Table 6.
+
+***
+## Inference on proportions
+### <font color=blue>Ex5</font>
+
+Conditions:  
+1.The sample observations are randomly chosen from the population, and each response are independent from each other.  
+2.Population size is large enough so that the SRS (without replace) doesn't affect the population distribution.  
+3.The Binomial distribution has to met (np>10 and n(1-p)>10) to be approximately Normal.  
+
+Yes, all the conditions can be met.  
+
+***
+### <font color=blue>Ex6</font>
+```{r}
+rf12 = subset(atheism, nationality == "Russian Federation" & year == "2012")
+inference(rf12$response, est = "proportion", type = "ci", method = "theoretical", success = "atheist")
+
+bh12 = subset(atheism, nationality == "Bosnia and Herzegovina" & year == "2012")
+inference(bh12$response, est = "proportion", type = "ci", method = "theoretical", success = "atheist")
+```
+  
+We choose Russian Federation and Bosnia and Herzegovina, data of both countries can meet with the condition.  
+$M_{Russian\ Federation} = 0.0147, and\ M_{Bosnia\ and\ Herzegovina} = 0.0121$  
+
+
+***
+## Success-failure condition
+### <font color=blue>Ex7</font>
+```{r}
+set.seed(1147)
+p = 0.1
+n = 1040
+p_hats = rep(0, 5000)
+
+for(i in 1:5000){
+  samp = sample(c("atheist", "non_atheist"), n, replace = TRUE, prob = c(p, 1-p))
+  p_hats[i] = sum(samp == "atheist")/n
+}
+
+hist(p_hats, main = "p = 0.1, n = 1040", xlim = c(0, 0.18))
+summary(p_hats)
+boxplot(p_hats)
+```
+  
+This sample distribution follows a Normal distribution(bell shaped), with center at 0.1, and spreads from 0.07019 to 0.13365.  
+
+***
+### <font color=blue>Ex8</font>
+```{r}
+set.seed(1152)
+p1 = 0.1
+p2 = 0.02
+p3 = 0.02
+n1 = 400
+n2 = 1040
+n3 =400
+p_hats1 = rep(0, 5000)
+p_hats2 = rep(0, 5000)
+p_hats3 = rep(0, 5000)
+
+for(i in 1:5000){
+  samp1 = sample(c("atheist", "non_atheist"), n1, replace = TRUE, prob = c(p1, 1-p1))
+  p_hats1[i] = sum(samp1 == "atheist")/n1
+  
+  samp2 = sample(c("atheist", "non_atheist"), n2, replace = TRUE, prob = c(p2, 1-p2))
+  p_hats2[i] = sum(samp2 == "atheist")/n2
+  
+  samp3 = sample(c("atheist", "non_atheist"), n3, replace = TRUE, prob = c(p3, 1-p3))
+  p_hats3[i] = sum(samp3 == "atheist")/n3
+}
+
+par(mfrow = c(2, 2))
+hist(p_hats1, main = "p = 0.1, n = 400", xlim = c(0, 0.2))
+hist(p_hats2, main = "p = 0.02, n = 1040", xlim = c(0, 0.04))
+hist(p_hats3, main = "p = 0.02, n = 400", xlim = c(0, 0.04))
+```
+  
+All three sample distributions are approximately Normal, centering at respective p.  
+The formula is $\hat{p} \sim N(\mu_{\hat{p}}=p, \sigma_{\hat{p}}=\sqrt{\frac{p(1-p)}{n}})$  
+So n does not affect the center of distribution, but influence the spread(i.e., with n gets larger, the spread shrinks, making the distribution more Normal).  
+For p, p is the center of the distribution, and when p approximates 0.5, the spread get larger, making the distribution more like Normal.     
+
+***
+### <font color=blue>Ex9</font>
+```{r}
+spain = subset(atheism, nationality == "Spain")
+inference(y = spain$response, x = as.factor(spain$year), est = "proportion",type = "ht",null = 0, alternative = "twosided", method = "theoretical", success = "atheist")
+```
+  
+$H_0: P_{2005} - P_{2012} = 0$  
+There is no difference between the proportion of atheism in Spain in 2005 and 2012.  
+$H_A: P_{2005} - P_{2012} \neq 0$  
+There is some difference between the proportion of atheism in Spain in 2005 and 2012.  
+The observed p-value is 0.3966, larger than $\alpha(0.05)$, so we have no strong evidence to reject H0. That is to say, there is no significant difference between the proportion of atheism in Spain in 2005 and 2012.  
+
+***
+### <font color=blue>Ex10</font>
+
+Currently, the sample size of year 2005 is 1146, and that of 2012 is 1145. It doesn't matter if the sample size changes, as long as they are not extremely small. However, we should keep in mind that as n1 and n2 changes, the degree of freedom changes, too.  

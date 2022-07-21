@@ -1,0 +1,98 @@
+---
+title: "lab7"
+author: "Yuchen Song_201830360498 - Xuewen Wang_201830120252"
+date: "2021/10/27"
+output: 
+    html_document:
+      toc: true
+---
+
+### <font color=blue>Data Loading</font>
+```{r}
+load(url("http://www.stat.duke.edu/~cr173/Sta102_Sp16/Lab/nc.RData"))
+```
+
+***
+### <font color=blue>Ex1</font>
+```{r}
+dim(nc)
+```
+  
+Each case represent some information of a birth of babies, including itself and its parents, and there are 1,000 cases in total.  
+
+***
+### <font color=blue>Ex2</font>
+```{r}
+boxplot(nc$weight~nc$habit)
+```
+  
+The plot highlights that if the mother has a smoking habit, then the child is tend to have a lower weight.  
+
+
+***
+### <font color=blue>Ex3</font>
+$H_0: \mu_{nonsmoker} - \mu_{smoker} = 0$  
+There is no difference between the weight of babies of non-smoking and smoking mothers.  
+  
+$H_A: \mu_{nonsmoker} - \mu_{smoker} \neq 0$  
+There is some difference between the weight of babies of non-smoking and smoking mothers.  
+
+
+***
+### <font color=blue>Ex4</font>
+```{r}
+load(url("http://www.stat.duke.edu/~cr173/Sta102_Sp16/Lab/inference.RData"))
+inference(y = nc$weight, x = nc$habit, est = "mean", type = "ci", null = 0, alternative = "twosided", method = "theoretical")
+```
+  
+This interval means that we have 95% confidence that our interval would capture the difference between means of baby weight of nonsmoker and smoker mother.  
+
+***
+### <font color=blue>Ex5</font>
+```{r}
+inference(y = nc$weeks, est = "mean", type = "ci", null = 0, alternative = "twosided", method = "theoretical")
+```
+  
+We have 95% confidence that the average length of pregnancies(in weeks) is in the interval of (38.1528, 38.5165).  
+
+***
+### <font color=blue>Ex6</font>
+We expect a 90% confidence interval to be narrower.
+```{r}
+inference(y = nc$weeks, est = "mean", type = "ci", null = 0, alternative = "twosided", method = "theoretical",conflevel = 0.90)
+```
+
+***
+### <font color=blue>Ex7</font>
+```{r}
+inference(y = nc$weight, x = nc$mature, est = "mean", type = "ht", null = 0, alternative = "twosided", method = "theoretical")
+```
+  
+P-value is the probability that assuming the null hypothesis(no difference between the weight of babies of young mother and mature mother) is true, the test difference is larger than the observed difference(0.0283).  
+
+***
+### <font color=blue>Ex8</font>
+```{r}
+by(nc$mage, nc$mature, max)
+```
+```{r}
+by(nc$mage, nc$mature, min)
+```
+We would expect the cutoff age to be 34(or 35). In our method, we use the "by" function with the parameter of "max" and "min" to gather the information of the maximum and minimum age of each group. The cutoff age must be in the interval between the maximum age of young mother and the minimum age of the mature mother.  
+
+
+***
+### <font color=blue>Ex9</font>
+```{r}
+inference(y = nc$mage, x = nc$premie, est = "mean", type = "ht", null = 0, alternative = "twosided", method = "theoretical")
+```
+
+The p-value is high(0.8266), so we don't have enough confidence to reject H0, that is to say, there is no significant difference between the average age of mothers born premature and full-term.  
+
+***
+### <font color=blue>Ex10</font>
+```{r}
+inference(y = nc$weight, x = nc$gender, est = "mean", type = "ci", null = 0, alternative = "twosided", method = "theoretical", order = c("male","female"))
+```
+  
+The 95% confidence interval for the difference between the average birth weight of baby boys and girls is (0.2131,0.5841).

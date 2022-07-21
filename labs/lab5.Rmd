@@ -1,0 +1,174 @@
+---
+title: "lab5"
+author: "Yuchen Song_201830360498 - Xuewen Wang_201830120252"
+date: "2021/10/9"
+output: 
+    html_document:
+      toc: true
+---
+
+### <font color=blue>Data Loading and Pre-processing</font>
+```{r}
+load(url("http://www.openintro.org/stat/data/ames.RData"))
+area = ames$Gr.Liv.Area
+price = ames$SalePrice
+```
+
+***
+### <font color=blue>Ex1</font>
+B is false.  
+
+```{r}
+summary(area)
+hist(area)
+```
+  
+A)From the histogram, we can see that it is unimodal and right skewed.  
+B)The median of the area is 1442, which implies that more than 50% of the houses in Ames are smaller than 1500 square feet.  
+C)It is correct since 1st Qu. is 1126 and 3rd Qu. is 1743.  
+D)Yes, the IQR is 617.  
+E)Yes, exactly.  
+
+***
+### <font color=blue>Ex2</font>
+```{r}
+set.seed(1100)
+samp1 = sample(area, size = 50, replace = TRUE)
+hist(samp1)
+```
+  
+This sample is unimodal and right-skewed.  
+The distribution is similar to that of the population.  
+
+***
+### <font color=blue>Ex3</font>
+```{r}
+mean1 = mean(samp1)
+set.seed(1104)
+samp2 = sample(area,size = 50,replace = TRUE)
+mean2 = mean(samp2)
+sprintf("The mean of sample 1 is %f, while the mean of sample2 is %f.",mean1,mean2)
+```
+  
+The mean of sample2 is slightly larger than that of sample1.  
+The sample with 1000 cases would achieve a more accurate estimate of the population mean.  
+
+***
+### <font color=blue>Ex4</font>
+```{r}
+sample_means50 = rep(NA, 5000)
+set.seed(1110)
+for(i in 1:5000){
+  samp = sample(area, size = 50, replace = TRUE)
+  sample_means50[i] = mean(samp)
+}
+
+hist(sample_means50,breaks = 25)
+summary(sample_means50)
+```
+  
+There are 5,000 elements in "sample_means50".  
+There are outliers on the right most area.  
+The sampling follows a unimodal and nearly Normal distribution, with a center at 1499.  
+There is little change if we collected 50,000 samples, but more symmetrical(more close to Normal distribution).  
+
+***
+### <font color=blue>Ex5</font>
+```{r}
+sample_means_small = rep(NA, 100)
+set.seed(1120)
+for(i in 1:100){
+  samp = sample(area, size = 50, replace = TRUE)
+  sample_means_small[i] = mean(samp)
+}
+sample_means_small
+```
+
+There are 100 elements in the object sample_means_small.  
+These elements represents the mean of our randomly chosed sample of 50 from the "area".  
+
+***
+### <font color=blue>Ex6</font>
+```{r}
+sample_means10 = rep(NA, 5000)
+sample_means100 = rep(NA, 5000)
+set.seed(1125)
+for(i in 1:5000){
+  samp = sample(area, size = 10, replace = TRUE)
+  sample_means10[i] = mean(samp)
+  samp = sample(area, size = 100, replace = TRUE)
+  sample_means100[i] = mean(samp)
+}
+
+par(mfrow = c(3, 1))
+
+xlimits = range(sample_means10)
+
+hist(sample_means10, breaks = 20, xlim = xlimits)
+hist(sample_means50, breaks = 20, xlim = xlimits)
+hist(sample_means100, breaks = 20, xlim = xlimits)
+summary(sample_means10)
+summary(sample_means50)
+summary(sample_means100)
+```
+
+The center doesn't change much when the samply size is larger, but it spreads less(more compact and more dense around the center).  
+
+***
+### <font color=blue>Ex7</font>
+```{r}
+set.seed(1130)
+samp3 = sample(price, size = 500, replace = TRUE)
+```
+The best point estimate is the sample mean.  
+
+***
+### <font color=blue>Ex8</font>
+```{r}
+sample_means50 = rep(NA, 5000)
+set.seed(1132)
+
+for (i in 1:5000) {
+  samp = sample(price, size = 50, replace = TRUE)
+  sample_means50[i] = mean(samp)
+}
+
+hist(sample_means50)
+summary(sample_means50)
+mean(price)
+```
+  
+The sampling follows a approximately Normal distribution with center at around 180000.  
+We take the mean of sample_means50 as an approximation of the mean of price (180712), which is indeed very close to the mean of the population (180796.1).
+
+***
+### <font color=blue>Ex9</font>
+```{r}
+sample_means100 = rep(NA, 5000)
+sample_means150 = rep(NA, 5000)
+set.seed(1139)
+for(i in 1:5000){
+  samp = sample(price, size = 100, replace = TRUE)
+  sample_means100[i] = mean(samp)
+  samp = sample(price, size = 150, replace = TRUE)
+  sample_means150[i] = mean(samp)
+}
+
+par(mfrow = c(3, 1))
+
+xlimits = range(sample_means50)
+
+hist(sample_means50, breaks = 20, xlim = xlimits)
+hist(sample_means100, breaks = 20, xlim = xlimits)
+hist(sample_means150, breaks = 20, xlim = xlimits)
+summary(sample_means50)
+summary(sample_means100)
+summary(sample_means150)
+```
+  
+As the sample size increases, the center of the distribution doesn't change much, while the spread shrinks and becomes more compact.  
+
+***
+### <font color=blue>Ex10</font>
+The sample size of 150 has a smaller spread.  
+We would prefer a small spread when making estimates of the population.  
